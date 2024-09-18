@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMX Mappack Randomizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0a0a0a;
+            color: white;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        ion-icon {
+            color: white;
+        }
+
+        .container {
+            max-width: 600px;
+            text-align: center;
+            background-color: #111;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+        }
+
+        h1 {
+            color: #014434;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        select, input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 300px;
+            border: 2px solid #014434;
+            border-radius: 5px;
+            background-color: #222;
+            color: white;
+        }
+
+        input[type="text"]::placeholder {
+            color: #666;
+        }
+
+        .search-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .search-btn img {
+            width: 40px;
+            height: 40px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            display: none;
+        }
+
+        th, td {
+            border: 1px solid #014434;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #014434;
+            color: #111;
+        }
+
+        td {
+            background-color: #222;
+        }
+
+        a {
+            color: white;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .copy-btn {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .copy-btn img {
+            width: 30px;
+            height: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Trackmania Mappack Tracks</h1>
+
+        <form id="searchForm">
+            <select id="trackCount">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+                <option value="20">20</option>
+            </select>
+
+            <input type="text" id="mappackID" placeholder="Enter Mappack ID" required>
+
+            <button class="search-btn" type="submit">
+                <ion-icon name="search-outline" size="large"></ion-icon>
+            </button>
+        </form>
+
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Results <button class="copy-btn" id="copyButton"><ion-icon name="copy-outline"></ion-icon>
+                    </button></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+    </div>
+
+    <script>
+        let selectedTrackIDs = [];
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        document.getElementById('searchForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const mappackID = document.getElementById('mappackID').value;
+            const trackCount = parseInt(document.getElementById('trackCount').value);
+            const apiUrl = `https://trackmania.exchange/api/mappack/get_mappack_tracks/${encodeURIComponent(mappackID)}`;
+
+            fetch(apiUrl, {
+                headers: {
+                    'User-Agent': 'TrackmaniaMappackSearch/1.0'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const trackIDs = data.map(track => track.TrackID);
+                const resultsTable = document.getElementById('resultsTable');
+                const tbody = resultsTable.querySelector('tbody');
+                tbody.innerHTML = '';
+
+                if (trackIDs.length > 0) {
+                    const shuffledTracks = shuffleArray(trackIDs);
+                    selectedTrackIDs = shuffledTracks.slice(0, Math.min(trackCount, trackIDs.length));
+
+                    const row = document.createElement('tr');
+                    const trackCell = document.createElement('td');
+                    const links = selectedTrackIDs.map(trackID => {
+                        const link = document.createElement('a');
+                        link.href = `https://trackmania.exchange/maps/${trackID}`;
+                        link.textContent = trackID;
+                        link.target = '_blank';
+                        return link.outerHTML;
+                    });
+
+                    trackCell.innerHTML = links.join(',');
+                    row.appendChild(trackCell);
+                    tbody.appendChild(row);
+                    resultsTable.style.display = 'table';
+                    document.getElementById('copyButton').style.display = 'inline-block';
+                } else {
+                    resultsTable.style.display = 'none';
+                    alert('No tracks found for this mappack.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while fetching the tracks.');
+            });
+        });
+
+        document.getElementById('copyButton').addEventListener('click', function() {
+            const trackIDsString = selectedTrackIDs.join(',');
+            navigator.clipboard.writeText(trackIDsString).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        });
+    </script>
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</body>
+</html>
